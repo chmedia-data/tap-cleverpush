@@ -1,0 +1,56 @@
+send_anonymous_usage_stats: true
+project_id: "tap-cleverpush"
+default_environment: test
+requires_meltano: ">=3.7"
+environments:
+- name: test
+
+plugins:
+  extractors:
+  - name: "tap-cleverpush"
+    namespace: "tap_cleverpush"
+    pip_url: -e .
+    capabilities:
+    - state
+    - catalog
+    - discover
+    - about
+    - stream-maps
+    - structured-logging
+
+    settings:
+    - name: api_key
+      kind: string
+      label: API Key
+      description: CleverPush private API key
+      sensitive: true
+
+    - name: channel_ids
+      kind: array
+      label: Channel IDs
+      description: Optional allowlist of channel IDs
+
+    - name: start_date
+      kind: date_iso8601
+      label: Start Date
+      description: Initial date to start extracting data from
+
+    - name: notifications_lookback_days
+      kind: integer
+      label: Notifications Lookback Days
+      description: Re-fetch notifications this many days back from bookmark to refresh late-changing metrics
+      value: 3
+
+    settings_group_validation:
+    - [api_key]
+
+    config:
+      start_date: "2026-03-01T00:00:00Z"
+
+  loaders:
+  - name: target-jsonl
+    variant: andyh1203
+    pip_url: target-jsonl
+    config:
+      destination_path: output
+      do_timestamp_file: true
