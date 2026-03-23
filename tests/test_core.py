@@ -32,7 +32,7 @@ def test_tap_subscriptions_replication_key() -> None:
     tap = TapCleverPush(config={"api_key": "test-token"})
     stream_map = {stream.name: stream for stream in tap.discover_streams()}
 
-    assert stream_map["subscriptions"].replication_key == "syncedAt"
+    assert stream_map["subscriptions"].replication_key == "synced_at"
 
 
 def test_tap_config_schema_fields() -> None:
@@ -130,10 +130,12 @@ def test_subscriptions_schema_is_strict_and_fields_align() -> None:
     }
 
     schema_properties = set(stream.schema["properties"].keys())
-    expected_requested_fields = schema_properties - {"id", "channel_id"}
+    expected_requested_fields = {
+        stream_defs._SUBSCRIPTION_FIELD_ALIASES.get(field, field) for field in params["fields"]
+    }
 
     assert stream.schema["additionalProperties"] is False
-    assert set(params["fields"]) == expected_requested_fields
+    assert expected_requested_fields == schema_properties - {"id", "channel_id"}
 
 
 def test_all_stream_schemas_are_strict() -> None:
@@ -152,7 +154,8 @@ def test_subscriptions_post_process_falls_back_to_created_at() -> None:
 
     assert row is not None
     assert row["id"] == "abc123"
-    assert row["syncedAt"] == "2024-01-10T00:00:00Z"
+    assert row["created_at"] == "2024-01-10T00:00:00Z"
+    assert row["synced_at"] == "2024-01-10T00:00:00Z"
 
 
 def test_subscriptions_post_process_drops_missing_synced_at_and_created_at() -> None:
@@ -163,6 +166,14 @@ def test_subscriptions_post_process_drops_missing_synced_at_and_created_at() -> 
     row = stream.post_process({"_id": "abc123"})
 
     assert row is None
+
+
+def test_all_stream_schema_fields_are_snake_case_or_simple_lowercase() -> None:
+    tap = TapCleverPush(config={"api_key": "test-token"})
+
+    for stream in tap.discover_streams():
+        for field_name in stream.schema["properties"]:
+            assert field_name == field_name.lower()
 
 
 def test_post_process_drops_records_missing_primary_keys(caplog) -> None:
@@ -233,6 +244,40 @@ def test_channels_post_process_strips_sensitive_fields() -> None:
     assert "somePrivateKey" not in row
 
 
+def test_channels_post_process_normalizes_fields_to_snake_case() -> None:
+    tap = TapCleverPush(config={"api_key": "test-token"})
+    stream_map = {stream.name: stream for stream in tap.discover_streams()}
+    stream = stream_map["channels"]
+
+    row = stream.post_process(
+        {
+            "_id": "channel-id",
+            "createdAt": "2024-01-01T00:00:00Z",
+            "updatedAt": "2024-01-02T00:00:00Z",
+            "optIns": 5,
+            "inactiveSubscriptions": 2,
+            "weeklyOptIns": 3,
+            "weeklyOptInsDesktop": 1,
+            "weeklyOptInsMobile": 2,
+            "ownDomain": True,
+            "isChannelNew": False,
+            "markedForDeletion": False,
+        }
+    )
+
+    assert row is not None
+    assert row["created_at"] == "2024-01-01T00:00:00Z"
+    assert row["updated_at"] == "2024-01-02T00:00:00Z"
+    assert row["opt_ins"] == 5
+    assert row["inactive_subscriptions"] == 2
+    assert row["weekly_opt_ins"] == 3
+    assert row["weekly_opt_ins_desktop"] == 1
+    assert row["weekly_opt_ins_mobile"] == 2
+    assert row["own_domain"] is True
+    assert row["is_channel_new"] is False
+    assert row["marked_for_deletion"] is False
+
+
 def test_notifications_cutoff_is_timezone_aware(monkeypatch) -> None:
     tap = TapCleverPush(
         config={
@@ -271,6 +316,86 @@ def test_notifications_child_context_provides_hourly_stats_path_params() -> None
     assert child_context == {"id": "notification-id", "channelId": "channel-id"}
 
 
+def test_notifications_schema_is_snake_case() -> None:
+    tap = TapCleverPush(config={"api_key": "test-token"})
+    stream_map = {stream.name: stream for stream in tap.discover_streams()}
+    properties = stream_map["notifications"].schema["properties"]
+
+    assert "created_at" in properties
+    assert "opt_outs" in properties
+    assert "sent_at" in properties
+    assert "subscription_count" in properties
+    assert "is_test_notification" in properties
+    assert "inactive_subscription_count" in properties
+    assert "error_count" in properties
+    assert "createdAt" not in properties
+    assert "optOuts" not in properties
+    assert "sentAt" not in properties
+    assert "subscriptionCount" not in properties
+    assert "isTestNotification" not in properties
+    assert "inactiveSubscriptionCount" not in properties
+    assert "errorCount" not in properties
+
+
+def test_notifications_post_process_normalizes_fields_to_snake_case() -> None:
+    tap = TapCleverPush(config={"api_key": "test-token"})
+    stream_map = {stream.name: stream for stream in tap.discover_streams()}
+    stream = stream_map["notifications"]
+
+    row = stream.post_process(
+        {
+            "_id": "notification-id",
+            "createdAt": "2026-02-25T09:00:00Z",
+            "queuedAt": "2026-02-25T09:05:00Z",
+            "optOuts": 2,
+            "sentAt": "2026-02-25T09:10:00Z",
+            "subscriptionCount": 100,
+            "isTestNotification": False,
+            "inactiveSubscriptionCount": 7,
+            "errorCount": 1,
+            "status": "sent",
+            "text": "Test push",
+            "url": "https://example.com",
+        },
+        {"id": "channel-id"},
+    )
+
+    assert row == {
+        "id": "notification-id",
+        "channel_id": "channel-id",
+        "created_at": "2026-02-25T09:00:00Z",
+        "queued_at": "2026-02-25T09:05:00Z",
+        "opt_outs": 2,
+        "sent_at": "2026-02-25T09:10:00Z",
+        "subscription_count": 100,
+        "is_test_notification": False,
+        "inactive_subscription_count": 7,
+        "error_count": 1,
+        "status": "sent",
+        "text": "Test push",
+        "url": "https://example.com",
+    }
+
+
+def test_notifications_post_process_falls_back_to_created_at_for_queued_at() -> None:
+    tap = TapCleverPush(config={"api_key": "test-token"})
+    stream_map = {stream.name: stream for stream in tap.discover_streams()}
+    stream = stream_map["notifications"]
+
+    row = stream.post_process(
+        {
+            "_id": "notification-id",
+            "createdAt": "2026-02-25T09:00:00Z",
+            "status": "sent",
+        },
+        {"id": "channel-id"},
+    )
+
+    assert row is not None
+    assert row["created_at"] == "2026-02-25T09:00:00Z"
+    assert row["queued_at"] == "2026-02-25T09:00:00Z"
+
+
 def test_notification_hourly_statistics_post_process_uses_context_notification_id() -> None:
     tap = TapCleverPush(config={"api_key": "test-token"})
     stream_map = {stream.name: stream for stream in tap.discover_streams()}
@@ -290,6 +415,16 @@ def test_notification_hourly_statistics_post_process_uses_context_notification_i
     assert row["channel_id"] == "channel-id"
 
 
+def test_notification_hourly_statistics_schema_excludes_transport_only_fields() -> None:
+    tap = TapCleverPush(config={"api_key": "test-token"})
+    stream_map = {stream.name: stream for stream in tap.discover_streams()}
+    properties = stream_map["notification_hourly_statistics"].schema["properties"]
+
+    assert "channel_id" in properties
+    assert "channelId" not in properties
+    assert "id" not in properties
+
+
 def test_subscription_count_post_process_uses_channel_context_pk() -> None:
     tap = TapCleverPush(config={"api_key": "test-token"})
     stream_map = {stream.name: stream for stream in tap.discover_streams()}
@@ -302,6 +437,7 @@ def test_subscription_count_post_process_uses_channel_context_pk() -> None:
 
     assert row is not None
     assert row["channel_id"] == "channel-id"
+    assert row["inactive_subscriptions"] == 4
 
 
 def test_subscription_count_snapshots_schema_and_primary_key() -> None:
@@ -342,6 +478,32 @@ def test_subscription_count_snapshots_snapshot_at_is_constant_per_run(monkeypatc
 
     assert row_one is not None
     assert row_two is not None
+    assert row_one["inactive_subscriptions"] == 4
+    assert row_two["inactive_subscriptions"] == 7
     assert row_one["snapshot_at"] == expected_snapshot_at
     assert row_two["snapshot_at"] == expected_snapshot_at
     assert FakeDatetime.calls == 1
+
+
+def test_tags_post_process_normalizes_fields_to_snake_case() -> None:
+    tap = TapCleverPush(config={"api_key": "test-token"})
+    stream_map = {stream.name: stream for stream in tap.discover_streams()}
+    stream = stream_map["tags"]
+
+    row = stream.post_process(
+        {
+            "_id": "tag-id",
+            "name": "breaking",
+            "createdAt": "2024-01-10T00:00:00Z",
+            "inactiveSubscriptions": 2,
+            "subscriptions": 10,
+            "tagGroups": ["group-a"],
+        },
+        {"id": "channel-id"},
+    )
+
+    assert row is not None
+    assert row["channel_id"] == "channel-id"
+    assert row["created_at"] == "2024-01-10T00:00:00Z"
+    assert row["inactive_subscriptions"] == 2
+    assert row["tag_groups"] == ["group-a"]

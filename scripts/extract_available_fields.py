@@ -53,7 +53,47 @@ STREAM_SPECS: tuple[StreamSpec, ...] = (
 
 GLOBAL_FIELD_ALIASES: dict[str, str] = {"_id": "id", "queuedAt": "queued_at"}
 STREAM_FIELD_ALIASES: dict[str, dict[str, str]] = {
-    "notification_hourly_statistics": {"notification": "notification_id"},
+    "channels": {
+        "createdAt": "created_at",
+        "updatedAt": "updated_at",
+        "optIns": "opt_ins",
+        "inactiveSubscriptions": "inactive_subscriptions",
+        "weeklyOptIns": "weekly_opt_ins",
+        "weeklyOptInsDesktop": "weekly_opt_ins_desktop",
+        "weeklyOptInsMobile": "weekly_opt_ins_mobile",
+        "ownDomain": "own_domain",
+        "isChannelNew": "is_channel_new",
+        "markedForDeletion": "marked_for_deletion",
+    },
+    "notifications": {
+        "createdAt": "created_at",
+        "optOuts": "opt_outs",
+        "sentAt": "sent_at",
+        "subscriptionCount": "subscription_count",
+        "isTestNotification": "is_test_notification",
+        "inactiveSubscriptionCount": "inactive_subscription_count",
+        "errorCount": "error_count",
+    },
+    "notification_hourly_statistics": {
+        "notification": "notification_id",
+        "channelId": "channel_id",
+    },
+    "subscriptions": {
+        "platformName": "platform_name",
+        "platformVersion": "platform_version",
+        "browserType": "browser_type",
+        "browserVersion": "browser_version",
+        "createdAt": "created_at",
+        "syncedAt": "synced_at",
+    },
+    "subscription_count": {
+        "inactiveSubscriptions": "inactive_subscriptions",
+    },
+    "tags": {
+        "createdAt": "created_at",
+        "inactiveSubscriptions": "inactive_subscriptions",
+        "tagGroups": "tag_groups",
+    },
 }
 DEFAULT_SWAGGER_URL = "https://api.cleverpush.com/swagger.json"
 

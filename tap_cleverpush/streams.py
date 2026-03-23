@@ -29,6 +29,57 @@ _SENSITIVE_CHANNEL_FIELD_NAMES = {
     "vapidPrivateKey",
 }
 
+_CHANNEL_FIELD_ALIASES = {
+    "createdAt": "created_at",
+    "updatedAt": "updated_at",
+    "optIns": "opt_ins",
+    "inactiveSubscriptions": "inactive_subscriptions",
+    "weeklyOptIns": "weekly_opt_ins",
+    "weeklyOptInsDesktop": "weekly_opt_ins_desktop",
+    "weeklyOptInsMobile": "weekly_opt_ins_mobile",
+    "ownDomain": "own_domain",
+    "isChannelNew": "is_channel_new",
+    "markedForDeletion": "marked_for_deletion",
+}
+
+_NOTIFICATION_FIELD_ALIASES = {
+    "createdAt": "created_at",
+    "queuedAt": "queued_at",
+    "optOuts": "opt_outs",
+    "sentAt": "sent_at",
+    "subscriptionCount": "subscription_count",
+    "isTestNotification": "is_test_notification",
+    "inactiveSubscriptionCount": "inactive_subscription_count",
+    "errorCount": "error_count",
+}
+
+_SUBSCRIPTION_FIELD_ALIASES = {
+    "platformName": "platform_name",
+    "platformVersion": "platform_version",
+    "browserType": "browser_type",
+    "browserVersion": "browser_version",
+    "createdAt": "created_at",
+    "syncedAt": "synced_at",
+}
+
+_SUBSCRIPTION_COUNT_FIELD_ALIASES = {
+    "inactiveSubscriptions": "inactive_subscriptions",
+}
+
+_TAG_FIELD_ALIASES = {
+    "createdAt": "created_at",
+    "inactiveSubscriptions": "inactive_subscriptions",
+    "tagGroups": "tag_groups",
+}
+
+
+def _normalize_aliased_fields(row: dict[str, Any], aliases: dict[str, str]) -> None:
+    """Rename API fields to their canonical output names in-place."""
+    for api_field, normalized_field in aliases.items():
+        if api_field in row:
+            row.setdefault(normalized_field, row[api_field])
+            row.pop(api_field, None)
+
 
 def _format_utc_datetime(dt: datetime) -> str:
     """Format a UTC-aware datetime as a Z-suffixed ISO 8601 string."""
@@ -71,18 +122,18 @@ class ChannelsStream(CleverPushStream):
         th.Property("domain", th.StringType),
         th.Property("type", th.StringType),
         th.Property("project", th.StringType),
-        th.Property("createdAt", th.DateTimeType),
-        th.Property("updatedAt", th.DateTimeType),
-        th.Property("optIns", th.NumberType),
+        th.Property("created_at", th.DateTimeType),
+        th.Property("updated_at", th.DateTimeType),
+        th.Property("opt_ins", th.NumberType),
         th.Property("subscriptions", th.NumberType),
-        th.Property("inactiveSubscriptions", th.NumberType),
-        th.Property("weeklyOptIns", th.NumberType),
-        th.Property("weeklyOptInsDesktop", th.NumberType),
-        th.Property("weeklyOptInsMobile", th.NumberType),
+        th.Property("inactive_subscriptions", th.NumberType),
+        th.Property("weekly_opt_ins", th.NumberType),
+        th.Property("weekly_opt_ins_desktop", th.NumberType),
+        th.Property("weekly_opt_ins_mobile", th.NumberType),
         th.Property("industry", th.StringType),
-        th.Property("ownDomain", th.BooleanType),
-        th.Property("isChannelNew", th.BooleanType),
-        th.Property("markedForDeletion", th.BooleanType),
+        th.Property("own_domain", th.BooleanType),
+        th.Property("is_channel_new", th.BooleanType),
+        th.Property("marked_for_deletion", th.BooleanType),
     )
 
     def get_records(self, context: dict | None) -> Iterable[dict]:
@@ -103,6 +154,7 @@ class ChannelsStream(CleverPushStream):
         return {"id": record.get("id")}
 
     def post_process(self, row: dict, context: dict | None = None) -> dict | None:
+        _normalize_aliased_fields(row, _CHANNEL_FIELD_ALIASES)
         row = super().post_process(row, context)
         if row is None:
             return None
@@ -157,18 +209,18 @@ class NotificationsStream(_OffsetPagedStream):
         th.Property("text", th.StringType),
         th.Property("status", th.StringType),
         th.Property("url", th.StringType),
-        th.Property("createdAt", th.DateTimeType),
+        th.Property("created_at", th.DateTimeType),
         th.Property("queued_at", th.DateTimeType),
         th.Property("clicked", th.NumberType),
         th.Property("delivered", th.NumberType),
-        th.Property("optOuts", th.NumberType),
+        th.Property("opt_outs", th.NumberType),
         th.Property("source", th.StringType),
-        th.Property("sentAt", th.DateTimeType),
-        th.Property("subscriptionCount", th.NumberType),
+        th.Property("sent_at", th.DateTimeType),
+        th.Property("subscription_count", th.NumberType),
         th.Property("transactional", th.BooleanType),
-        th.Property("isTestNotification", th.BooleanType),
-        th.Property("inactiveSubscriptionCount", th.NumberType),
-        th.Property("errorCount", th.NumberType),
+        th.Property("is_test_notification", th.BooleanType),
+        th.Property("inactive_subscription_count", th.NumberType),
+        th.Property("error_count", th.NumberType),
     )
 
     def _get_notifications_lookback_days(self) -> int:
@@ -231,10 +283,10 @@ class NotificationsStream(_OffsetPagedStream):
         }
 
     def post_process(self, row: dict, context: dict | None = None) -> dict | None:
-        # The API emits queuedAt (camelCase), but incremental state uses queued_at.
-        # Mirror queuedAt/createdAt into queued_at so bookmarking and comparisons are consistent.
+        _normalize_aliased_fields(row, _NOTIFICATION_FIELD_ALIASES)
+
         if "queued_at" not in row:
-            row["queued_at"] = row.get("queuedAt") or row.get("createdAt")
+            row["queued_at"] = row.get("created_at")
 
         row = super().post_process(row, context)
         if row is None:
@@ -254,10 +306,8 @@ class NotificationHourlyStatisticsStream(CleverPushStream):
 
     records_key = "statistics"
     schema = _schema(
-        th.Property("id", th.StringType),
         th.Property("notification_id", th.StringType),
         th.Property("channel_id", th.StringType),
-        th.Property("channelId", th.StringType),
         th.Property("date", th.StringType),
         th.Property("delivered", th.NumberType),
         th.Property("clicked", th.NumberType),
@@ -299,8 +349,15 @@ class SubscriptionCountStream(CleverPushStream):
         th.Property("id", th.StringType),
         th.Property("channel_id", th.StringType),
         th.Property("subscriptions", th.NumberType),
-        th.Property("inactiveSubscriptions", th.NumberType),
+        th.Property("inactive_subscriptions", th.NumberType),
     )
+
+    def post_process(self, row: dict, context: dict | None = None) -> dict | None:
+        _normalize_aliased_fields(row, _SUBSCRIPTION_COUNT_FIELD_ALIASES)
+        row = super().post_process(row, context)
+        if row is None:
+            return None
+        return row
 
 
 class SubscriptionCountSnapshotsStream(SubscriptionCountStream):
@@ -313,7 +370,7 @@ class SubscriptionCountSnapshotsStream(SubscriptionCountStream):
         th.Property("id", th.StringType),
         th.Property("channel_id", th.StringType),
         th.Property("subscriptions", th.NumberType),
-        th.Property("inactiveSubscriptions", th.NumberType),
+        th.Property("inactive_subscriptions", th.NumberType),
         th.Property("snapshot_at", th.DateTimeType),
     )
 
@@ -331,15 +388,15 @@ class SubscriptionCountSnapshotsStream(SubscriptionCountStream):
 
 
 class SubscriptionsStream(CleverPushStream):
-    """Subscriptions per channel (incremental on syncedAt)."""
+    """Subscriptions per channel (incremental on synced_at)."""
 
     name = "subscriptions"
     parent_stream_type = ChannelsStream
     path = "/channel/{id}/subscriptions"
     primary_keys = ("id",)
 
-    # syncedAt tracks mutations; createdAt would miss updates on older subscriptions.
-    replication_key = "syncedAt"
+    # synced_at tracks mutations; created_at would miss updates on older subscriptions.
+    replication_key = "synced_at"
 
     records_key = "subscriptions"
     subscription_api_fields: ClassVar[tuple[str, ...]] = (
@@ -368,14 +425,14 @@ class SubscriptionsStream(CleverPushStream):
         th.Property("inactive", th.BooleanType),
         th.Property("country", th.StringType),
         th.Property("language", th.StringType),
-        th.Property("platformName", th.StringType),
-        th.Property("platformVersion", th.StringType),
-        th.Property("browserType", th.StringType),
-        th.Property("browserVersion", th.StringType),
+        th.Property("platform_name", th.StringType),
+        th.Property("platform_version", th.StringType),
+        th.Property("browser_type", th.StringType),
+        th.Property("browser_version", th.StringType),
         th.Property("timezone", th.StringType),
         th.Property("topics", th.ArrayType(th.StringType)),
-        th.Property("createdAt", th.DateTimeType),
-        th.Property("syncedAt", th.DateTimeType),
+        th.Property("created_at", th.DateTimeType),
+        th.Property("synced_at", th.DateTimeType),
     )
 
     def get_new_paginator(self) -> CleverPushSubscriptionCursorPaginator:
@@ -396,17 +453,19 @@ class SubscriptionsStream(CleverPushStream):
         return params
 
     def post_process(self, row: dict, context: dict | None = None) -> dict | None:
-        if not row.get("syncedAt"):
-            # Fallback keeps incremental state monotonic when syncedAt is omitted.
-            row["syncedAt"] = row.get("createdAt")
+        _normalize_aliased_fields(row, _SUBSCRIPTION_FIELD_ALIASES)
+
+        if not row.get("synced_at"):
+            # Fallback keeps incremental state monotonic when synced_at is omitted.
+            row["synced_at"] = row.get("created_at")
             self.logger.warning(
-                "createdAt not found in %s. Falling back to syncedAt",
+                "synced_at not found in %s. Falling back to created_at",
                 self.name,
             )
 
-        if not row.get("syncedAt"):
+        if not row.get("synced_at"):
             self.logger.warning(
-                "Dropping record in stream %s due to missing syncedAt and createdAt",
+                "Dropping record in stream %s due to missing synced_at and created_at",
                 self.name,
             )
             return None
@@ -431,8 +490,15 @@ class TagsStream(_OffsetPagedStream):
         th.Property("id", th.StringType),
         th.Property("channel_id", th.StringType),
         th.Property("name", th.StringType),
-        th.Property("createdAt", th.DateTimeType),
-        th.Property("inactiveSubscriptions", th.NumberType),
+        th.Property("created_at", th.DateTimeType),
+        th.Property("inactive_subscriptions", th.NumberType),
         th.Property("subscriptions", th.NumberType),
-        th.Property("tagGroups", th.ArrayType(th.StringType)),
+        th.Property("tag_groups", th.ArrayType(th.StringType)),
     )
+
+    def post_process(self, row: dict, context: dict | None = None) -> dict | None:
+        _normalize_aliased_fields(row, _TAG_FIELD_ALIASES)
+        row = super().post_process(row, context)
+        if row is None:
+            return None
+        return row

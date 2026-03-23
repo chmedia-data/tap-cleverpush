@@ -89,7 +89,7 @@ Set `api_key` to a CleverPush private API key. The tap sends it in the
 channels (full_table)
 ├── notifications (incremental, cursor=queued_at)
 │   └── notification_hourly_statistics (full_table per notification)
-├── subscriptions (incremental, cursor=syncedAt)
+├── subscriptions (incremental, cursor=synced_at)
 ├── subscription_count (full_table snapshot)
 ├── subscription_count_snapshots (full_table snapshot per run)
 └── tags (full_table)
@@ -102,7 +102,7 @@ channels (full_table)
 | `channels` | None | `/channels` | Full-table | None | Optional `channel_ids` allowlist after fetch | `SinglePagePaginator` |
 | `notifications` | `channels` | `/channel/{id}/notifications` | Incremental | `queued_at` | `startDate = effective_start` (unix seconds) | Offset (`limit`, `offset`) |
 | `notification_hourly_statistics` | `notifications` | `/channel/{channelId}/notification/{id}/hourly-statistics` | Full-table per notification | None | Fetched for notifications returned in the same run | `SinglePagePaginator` |
-| `subscriptions` | `channels` | `/channel/{id}/subscriptions` | Incremental | `syncedAt` | `updatedSince` (unix millis) | Cursor (`startId`) |
+| `subscriptions` | `channels` | `/channel/{id}/subscriptions` | Incremental | `synced_at` | `updatedSince` (unix millis) | Cursor (`startId`) |
 | `subscription_count` | `channels` | `/channel/{id}/subscription-count` | Full-table snapshot | None | None | `SinglePagePaginator` |
 | `subscription_count_snapshots` | `channels` | `/channel/{id}/subscription-count` | Full-table snapshot per run | None | `snapshot_at` is assigned once per sync run | `SinglePagePaginator` |
 | `tags` | `channels` | `/channel/{id}/tags` | Full-table | None | None | Offset (`limit`, `skip`) |
@@ -111,13 +111,13 @@ channels (full_table)
 
 | Stream | Top-level fields |
 |---|---|
-| `channels` | `id`, `name`, `identifier`, `domain`, `type`, `project`, `createdAt`, `updatedAt`, `optIns`, `subscriptions`, `inactiveSubscriptions`, `weeklyOptIns`, `weeklyOptInsDesktop`, `weeklyOptInsMobile`, `industry`, `ownDomain`, `isChannelNew`, `markedForDeletion` |
-| `notifications` | `id`, `channel_id`, `text`, `status`, `url`, `createdAt`, `queued_at`, `clicked`, `delivered`, `optOuts`, `source`, `sentAt`, `subscriptionCount`, `transactional`, `isTestNotification`, `inactiveSubscriptionCount`, `errorCount` |
-| `notification_hourly_statistics` | `id`, `notification_id`, `channel_id`, `channelId`, `date`, `delivered`, `clicked` |
-| `subscriptions` | `id`, `channel`, `channel_id`, `type`, `inactive`, `country`, `language`, `platformName`, `platformVersion`, `browserType`, `browserVersion`, `timezone`, `topics`, `createdAt`, `syncedAt` |
-| `subscription_count` | `id`, `channel_id`, `subscriptions`, `inactiveSubscriptions` |
-| `subscription_count_snapshots` | `id`, `channel_id`, `subscriptions`, `inactiveSubscriptions`, `snapshot_at` |
-| `tags` | `id`, `channel_id`, `name`, `createdAt`, `inactiveSubscriptions`, `subscriptions`, `tagGroups` |
+| `channels` | `id`, `name`, `identifier`, `domain`, `type`, `project`, `created_at`, `updated_at`, `opt_ins`, `subscriptions`, `inactive_subscriptions`, `weekly_opt_ins`, `weekly_opt_ins_desktop`, `weekly_opt_ins_mobile`, `industry`, `own_domain`, `is_channel_new`, `marked_for_deletion` |
+| `notifications` | `id`, `channel_id`, `text`, `status`, `url`, `created_at`, `queued_at`, `clicked`, `delivered`, `opt_outs`, `source`, `sent_at`, `subscription_count`, `transactional`, `is_test_notification`, `inactive_subscription_count`, `error_count` |
+| `notification_hourly_statistics` | `notification_id`, `channel_id`, `date`, `delivered`, `clicked` |
+| `subscriptions` | `id`, `channel`, `channel_id`, `type`, `inactive`, `country`, `language`, `platform_name`, `platform_version`, `browser_type`, `browser_version`, `timezone`, `topics`, `created_at`, `synced_at` |
+| `subscription_count` | `id`, `channel_id`, `subscriptions`, `inactive_subscriptions` |
+| `subscription_count_snapshots` | `id`, `channel_id`, `subscriptions`, `inactive_subscriptions`, `snapshot_at` |
+| `tags` | `id`, `channel_id`, `name`, `created_at`, `inactive_subscriptions`, `subscriptions`, `tag_groups` |
 
 ### Field Inventory Helper
 
