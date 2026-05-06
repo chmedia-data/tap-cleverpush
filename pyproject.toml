@@ -32,7 +32,7 @@ s3 = [
     "s3fs>=2026.1.0",
 ]
 analysis = [
-    "matplotlib>=3.9",
+    "matplotlib>=3.10.9",
 ]
 
 [project.scripts]
