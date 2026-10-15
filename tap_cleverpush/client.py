@@ -7,7 +7,7 @@ import sys
 from typing import Any, ClassVar
 
 from singer_sdk.authenticators import APIKeyAuthenticator
-from singer_sdk.pagination import BaseAPIPaginator, BaseOffsetPaginator
+from singer_sdk.pagination import BaseAPIPaginator, OffsetPaginator
 from singer_sdk.streams import RESTStream
 
 if sys.version_info >= (3, 12):
@@ -21,7 +21,7 @@ import requests
 from singer_sdk.helpers.types import Context
 
 
-class CleverPushOffsetPaginator(BaseOffsetPaginator):
+class CleverPushOffsetPaginator(OffsetPaginator):
     """Offset paginator for CleverPush list endpoints."""
 
     def __init__(self, records_key: str, page_size: int) -> None:
