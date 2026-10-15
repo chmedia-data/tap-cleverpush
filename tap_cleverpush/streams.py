@@ -301,6 +301,10 @@ class NotificationHourlyStatisticsStream(CleverPushStream):
     parent_stream_type = NotificationsStream
     path = "/channel/{channelId}/notification/{id}/hourly-statistics"
 
+    # full table per notification, so there is no bookmark to keep per context.
+    # without this the state grows by one empty partition per notification ever synced.
+    state_partitioning_keys: ClassVar[list[str]] = []
+
     # business grain over source row ids for stable downstream dedupe.
     primary_keys = ("notification_id", "channel_id", "date")
 
