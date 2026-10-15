@@ -23,16 +23,16 @@ license-files = [ "LICENSE" ]
 requires-python = ">=3.10"
 dependencies = [
     "singer-sdk[faker]~=0.53.5",
-    "requests~=2.32.3",
+    "requests~=2.34.2",
     "typing-extensions>=4.5.0; python_version < '3.13'",
 ]
 
 [project.optional-dependencies]
 s3 = [
-    "s3fs>=2026.1.0",
+    "s3fs>=2026.4.0",
 ]
 analysis = [
-    "matplotlib>=3.9",
+    "matplotlib>=3.10.9",
 ]
 
 [project.scripts]
