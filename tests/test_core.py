@@ -415,6 +415,16 @@ def test_notification_hourly_statistics_post_process_uses_context_notification_i
     assert row["channel_id"] == "channel-id"
 
 
+def test_notification_hourly_statistics_state_is_not_partitioned_per_notification() -> None:
+    tap = TapCleverPush(config={"api_key": "test-token"})
+    stream = tap.streams["notification_hourly_statistics"]
+
+    for notification_id in ("n1", "n2"):
+        stream.get_context_state({"id": notification_id, "channelId": "c1"})
+
+    assert "partitions" not in tap.state["bookmarks"]["notification_hourly_statistics"]
+
+
 def test_notification_hourly_statistics_schema_excludes_transport_only_fields() -> None:
     tap = TapCleverPush(config={"api_key": "test-token"})
     stream_map = {stream.name: stream for stream in tap.discover_streams()}
