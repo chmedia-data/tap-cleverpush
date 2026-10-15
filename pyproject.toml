@@ -22,7 +22,7 @@ license = "Apache-2.0"
 license-files = [ "LICENSE" ]
 requires-python = ">=3.10"
 dependencies = [
-    "singer-sdk[faker]~=0.53.5",
+    "singer-sdk[faker]~=0.54.2",
     "requests~=2.34.2",
     "typing-extensions>=4.5.0; python_version < '3.13'",
 ]
@@ -30,9 +30,6 @@ dependencies = [
 [project.optional-dependencies]
 s3 = [
     "s3fs>=2026.4.0",
-]
-analysis = [
-    "matplotlib>=3.10.9",
 ]
 
 [project.scripts]

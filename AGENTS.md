@@ -135,7 +135,7 @@ class MyStream(CleverPushStream):
 
 **Common Pagination Patterns:**
 
-- **Offset-based**: Extend `BaseOffsetPaginator`
+- **Offset-based**: Extend `OffsetPaginator`
 - **Page-based**: Extend `BasePageNumberPaginator`
 - **Cursor-based**: Extend `BaseAPIPaginator` with custom logic
 - **HATEOAS/HAL**: Use `JSONPathPaginator` with appropriate JSON path
