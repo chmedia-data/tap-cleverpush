@@ -15,7 +15,7 @@ jobs:
   verify:
     # GitHub-hosted on purpose: the check needs no AWS access, so it stays off
     # the CodeBuild runners and their role
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     timeout-minutes: 5
     env:
       GH_TOKEN: ${{ github.token }}
